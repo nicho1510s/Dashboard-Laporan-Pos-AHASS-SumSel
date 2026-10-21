@@ -124,6 +124,58 @@
     .empty-cell { text-align: center !important; padding: 28px !important; color: #8b91a0; }
     footer { display: flex; justify-content: space-between; gap: 20px; color: #9197a3; font-size: 9px; line-height: 1.6; padding: 5px 2px 12px; }
     .footer-warning { color: #8d661d; }
+    .class-badge { display:inline-flex; align-items:center; padding:5px 9px; margin-left:7px; border-radius:999px; font-size:10px; font-weight:850; letter-spacing:.03em; border:1px solid transparent; vertical-align:middle; }
+    .class-high { background:#e8f7ee; color:#137547; border-color:#b9e6ca; }
+    .class-middle { background:#fff4d8; color:#8a5b00; border-color:#f0d990; }
+    .class-low { background:#fdebed; color:#ad2335; border-color:#f2c3ca; }
+    .class-unclassified { background:#eef0f4; color:#606775; border-color:#d8dce4; }
+    .class-monthly-panel { margin: 0 0 18px; overflow:hidden; }
+    .class-monthly-head { align-items:flex-start; gap:18px; }
+    .class-filter-row { display:grid; grid-template-columns:minmax(140px, 1fr) minmax(130px, .8fr); gap:10px; min-width:min(100%, 340px); }
+    .class-filter-row .field label { font-size:9px; }
+    .class-summary-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:16px 18px; }
+    .class-summary-card { background:#fff; border:1px solid var(--line); border-top:4px solid #a6adba; border-radius:11px; padding:14px; min-width:0; }
+    .class-summary-card.high { border-top-color:#16865c; }
+    .class-summary-card.middle { border-top-color:#d59a17; }
+    .class-summary-card.low { border-top-color:#d9485b; }
+    .class-summary-title { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
+    .class-summary-title h4 { margin:0; font-size:12px; letter-spacing:.04em; }
+    .class-count { font-size:10px; color:var(--muted); white-space:nowrap; }
+    .class-big-number { font-size:25px; font-weight:850; letter-spacing:-.04em; line-height:1.2; }
+    .class-number-label { color:var(--muted); font-size:10px; margin-top:4px; }
+    .class-mini-metrics { display:grid; grid-template-columns:1fr 1fr; gap:12px; border-top:1px solid var(--line); margin-top:13px; padding-top:12px; }
+    .class-mini-metrics span { display:block; color:var(--muted); font-size:9px; margin-bottom:5px; }
+    .class-mini-metrics strong { display:block; font-size:12px; }
+    .class-mini-metrics .achievement { font-size:14px; }
+    .class-chart-wrap { padding:0 18px 18px; }
+    .class-chart-title { font-size:11px; font-weight:800; margin:0 0 13px; }
+    .class-bar-row { display:grid; grid-template-columns:90px minmax(70px,1fr) 88px; gap:12px; align-items:center; margin:11px 0; }
+    .class-bar-name { font-size:10px; font-weight:850; }
+    .class-bar-track { height:12px; border-radius:99px; background:#f0f2f6; overflow:hidden; }
+    .class-bar-fill { height:100%; display:block; border-radius:99px; min-width:0; }
+    .class-bar-fill.high { background:#16865c; }
+    .class-bar-fill.middle { background:#d59a17; }
+    .class-bar-fill.low { background:#d9485b; }
+    .class-bar-value { font-size:10px; font-weight:800; text-align:right; }
+    .class-table-head { border-top:1px solid var(--line); }
+    table.class-table { min-width:970px; }
+    .class-table th, .class-table td { text-align:right; }
+    .class-table th:nth-child(2), .class-table td:nth-child(2) { text-align:left; min-width:280px; white-space:normal; }
+    .class-table th:nth-child(3), .class-table td:nth-child(3), .class-table th:nth-child(9), .class-table td:nth-child(9) { text-align:center; }
+    .class-table td.positive { color:#16865c; font-weight:800; }
+    .class-table td.negative { color:#d9485b; font-weight:800; }
+    .class-source-note { padding:0 18px 14px; color:var(--muted); font-size:10px; line-height:1.6; }
+    @media (max-width: 1180px) {
+      .class-monthly-head { align-items:flex-start; }
+      .class-filter-row { min-width:300px; }
+    }
+    @media (max-width: 820px) {
+      .class-summary-grid { grid-template-columns:1fr; padding:12px; }
+      .class-monthly-head { flex-direction:column; }
+      .class-filter-row { min-width:0; width:100%; }
+      .class-chart-wrap { padding:0 12px 14px; }
+      .class-bar-row { grid-template-columns:76px minmax(50px,1fr) 74px; gap:8px; }
+    }
     .hidden { display: none !important; }
     @media (max-width: 1180px) {
       .app { grid-template-columns: 205px minmax(0,1fr); }
@@ -212,7 +264,7 @@
       <section class="pos-head">
         <div>
           <h2 id="posTitle">Memuat POS...</h2>
-          <p class="pos-sub"><span class="pos-code" id="dealerCode">Kode AHASS —</span> <span style="margin-left:7px" id="dealerName"></span></p>
+          <p class="pos-sub"><span class="pos-code" id="dealerCode">Kode AHASS —</span><span id="posClassBadge" class="class-badge class-unclassified">KELAS BELUM DIPETAKAN</span><span style="margin-left:7px" id="dealerName"></span></p>
         </div>
         <div id="periodState" class="period-state">Memuat periode...</div>
       </section>
@@ -287,6 +339,51 @@
         </article>
       </section>
 
+      <section class="panel class-monthly-panel" aria-label="Performa UE bulanan berdasarkan kelas POS">
+        <div class="panel-head class-monthly-head">
+          <div>
+            <h3>Performa UE Bulanan per Kelas POS</h3>
+            <p>Bandingkan UE aktual, target fix, dan pencapaian target berdasarkan kelas pada workbook bulanan.</p>
+          </div>
+          <div class="class-filter-row">
+            <div class="field">
+              <label for="classMonthSelect">Periode UE</label>
+              <select id="classMonthSelect" aria-label="Pilih periode UE bulanan"></select>
+            </div>
+            <div class="field">
+              <label for="classFilterSelect">Kelas POS</label>
+              <select id="classFilterSelect" aria-label="Filter kelas POS">
+                <option value="all">Semua kelas</option>
+                <option value="HIGH">HIGH</option>
+                <option value="MIDDLE">MIDDLE</option>
+                <option value="LOW">LOW</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div id="classSummaryCards" class="class-summary-grid">
+          <div class="chart-empty">Memuat rekap kelas POS...</div>
+        </div>
+        <div class="class-chart-wrap">
+          <p class="class-chart-title">Rata-rata UE aktual per POS</p>
+          <div id="classComparisonChart"></div>
+        </div>
+        <div class="panel-head class-table-head">
+          <div><h3>Detail UE per POS Service</h3><p id="classTableSubtitle">Rincian target dan aktual berdasarkan kelas.</p></div>
+          <div class="table-actions"><button class="secondary-btn" id="exportClassBtn" type="button">⇩ Export UE CSV</button></div>
+        </div>
+        <div class="table-wrap">
+          <table class="class-table">
+            <thead><tr>
+              <th>Rank</th><th>Nama POS Service</th><th>Kelas</th><th>Kode AHASS</th><th>UE Aktual</th><th>Target Fix</th><th>ACV</th><th>Gap UE</th><th>SIP</th>
+            </tr></thead>
+            <tbody id="classPosRows"><tr><td class="empty-cell" colspan="9">Memuat data UE bulanan...</td></tr></tbody>
+          </table>
+        </div>
+        <div class="table-footer"><span id="classTableCount">—</span><span>ACV kelas dihitung sebagai total UE aktual ÷ total target fix; data diambil dari tab UE POS bulanan.</span></div>
+        <div class="class-source-note" id="classSourceNote"></div>
+      </section>
+
       <section class="panel table-panel">
         <div class="panel-head">
           <div><h3>Detail Laporan</h3><p id="tableSubtitle">Rincian sesuai filter POS dan periode.</p></div>
@@ -311,11 +408,21 @@
   </div>
 
   <script src="data.js"></script>
+  <script src="ue_class_data.js"></script>
   <script>
     (function () {
       'use strict';
       const dataRoot = window.POS_DASHBOARD_DATA || { meta: {}, records: [] };
       const records = Array.isArray(dataRoot.records) ? dataRoot.records : [];
+      const classDataRoot = window.POS_CLASS_MONTHLY_DATA || { meta: {}, months: [], records: [] };
+      const classRecords = Array.isArray(classDataRoot.records) ? classDataRoot.records : [];
+      const classMonths = Array.isArray(classDataRoot.months) ? classDataRoot.months.slice().sort() : [];
+      const latestClassMonth = classDataRoot.meta.latestMonth || classMonths[classMonths.length - 1] || '';
+      const normalizePosName = value => String(value == null ? '' : value).trim().toLowerCase().replace(/\s+/g, ' ');
+      const classByPosName = new Map();
+      classRecords.filter(r => r.month === latestClassMonth).forEach(r => {
+        classByPosName.set(normalizePosName(r.posName), String(r.kelas || '').toUpperCase());
+      });
       const today = new Date();
       const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
       const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -327,12 +434,19 @@
       const selectedQuery = new URLSearchParams(window.location.search).get('pos');
       const posDirectory = new Map();
       records.forEach(r => {
-        if (!posDirectory.has(r.posId)) posDirectory.set(r.posId, { posId: r.posId, posName: r.posName, dealerCode: r.dealerCode || '' });
+        if (!posDirectory.has(r.posId)) posDirectory.set(r.posId, {
+          posId: r.posId,
+          posName: r.posName,
+          dealerCode: r.dealerCode || '',
+          posClass: classByPosName.get(normalizePosName(r.posName)) || 'UNCLASSIFIED'
+        });
       });
       const positions = Array.from(posDirectory.values()).sort((a,b) => a.posName.localeCompare(b.posName, 'id'));
       const months = Array.from(new Set(records.map(r => r.month))).filter(Boolean).sort();
       let activePosId = '';
       let activeMonth = currentMonth;
+      let activeClassMonth = latestClassMonth;
+      let activeClassFilter = 'all';
 
       function esc(value) {
         return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -481,6 +595,10 @@
         const prev = aggregate(prevItems);
         document.getElementById('posTitle').textContent = pos.posName.split('/')[0].trim();
         document.getElementById('dealerCode').textContent = `Kode AHASS ${pos.dealerCode || '—'}`;
+        const posClassBadge = document.getElementById('posClassBadge');
+        const posClass = pos.posClass || 'UNCLASSIFIED';
+        posClassBadge.className = `class-badge class-${posClass.toLowerCase()}`;
+        posClassBadge.textContent = posClass === 'UNCLASSIFIED' ? 'KELAS BELUM DIPETAKAN' : `KELAS ${posClass}`;
         const dealerName = pos.posName.includes('/') ? pos.posName.split('/').slice(1).join('/').trim() : '';
         document.getElementById('dealerName').textContent = dealerName;
         document.getElementById('periodState').textContent = items.length ? `${fmtNum(items.length)} laporan tersedia` : 'Belum ada laporan';
@@ -536,8 +654,118 @@
           document.getElementById('periodWarningText').innerHTML = `<strong>Periode ${esc(monthLabel(activeMonth))} berada setelah bulan berjalan.</strong> Nilai pada bulan ini berasal dari file sumber dan tetap ditampilkan apa adanya. Periksa kembali apakah data merupakan rencana, data uji, atau kesalahan tanggal.`;
         } else periodWarning.classList.add('hidden');
       }
+      function percentLabel(value) {
+        return `${(Number(value) * 100 || 0).toLocaleString('id-ID', { maximumFractionDigits: 1 })}%`;
+      }
+      function currentClassMonthRows() {
+        return classRecords.filter(r => r.month === activeClassMonth);
+      }
+      function classStatistics(rows) {
+        return ['HIGH', 'MIDDLE', 'LOW'].map(kelas => {
+          const items = rows.filter(r => r.kelas === kelas);
+          const totalUE = items.reduce((a, r) => a + (Number(r.totalUE) || 0), 0);
+          const totalTarget = items.reduce((a, r) => a + (Number(r.targetFix) || 0), 0);
+          const targetRows = items.filter(r => Number(r.targetFix) > 0);
+          const reached = targetRows.filter(r => Number(r.totalUE) >= Number(r.targetFix)).length;
+          return {
+            kelas,
+            count: items.length,
+            totalUE,
+            totalTarget,
+            weightedACV: totalTarget ? totalUE / totalTarget : 0,
+            averageUE: items.length ? totalUE / items.length : 0,
+            targetCount: targetRows.length,
+            reached
+          };
+        });
+      }
+      function renderClassMonthlyDashboard() {
+        const cards = document.getElementById('classSummaryCards');
+        const chart = document.getElementById('classComparisonChart');
+        const rowsEl = document.getElementById('classPosRows');
+        if (!classRecords.length || !classMonths.length) {
+          cards.innerHTML = '<div class="chart-empty">Data UE kelas belum tersedia. Pastikan file ue_class_data.js sudah diunggah bersama index.html.</div>';
+          chart.innerHTML = '';
+          rowsEl.innerHTML = '<tr><td class="empty-cell" colspan="9">Tidak ada data UE kelas.</td></tr>';
+          document.getElementById('classTableCount').textContent = '0 POS';
+          return;
+        }
+        const allRows = currentClassMonthRows();
+        const stats = classStatistics(allRows);
+        cards.innerHTML = stats.map(s => `
+          <article class="class-summary-card ${s.kelas.toLowerCase()}">
+            <div class="class-summary-title">
+              <h4>KELAS ${s.kelas}</h4>
+              <span class="class-count">${fmtNum(s.count)} POS</span>
+            </div>
+            <div class="class-big-number">${fmtNum(s.totalUE)}</div>
+            <div class="class-number-label">Total UE aktual · ${esc(monthLabel(activeClassMonth))}</div>
+            <div class="class-mini-metrics">
+              <div><span>Total target fix</span><strong>${fmtNum(s.totalTarget)}</strong></div>
+              <div><span>ACV tertimbang</span><strong class="achievement">${percentLabel(s.weightedACV)}</strong></div>
+              <div><span>Rata-rata UE/POS</span><strong>${fmtNum(s.averageUE)}</strong></div>
+              <div><span>POS mencapai target</span><strong>${fmtNum(s.reached)} / ${fmtNum(s.targetCount)}</strong></div>
+            </div>
+          </article>
+        `).join('');
+
+        const maxAvg = Math.max(1, ...stats.map(s => s.averageUE));
+        chart.innerHTML = stats.map(s => {
+          const width = Math.max(0, Math.min(100, s.averageUE / maxAvg * 100));
+          return `<div class="class-bar-row">
+            <span class="class-bar-name">KELAS ${s.kelas}</span>
+            <div class="class-bar-track" role="img" aria-label="Rata-rata UE kelas ${s.kelas}"><span class="class-bar-fill ${s.kelas.toLowerCase()}" style="width:${width.toFixed(2)}%"></span></div>
+            <span class="class-bar-value">${fmtNum(s.averageUE)} UE/POS</span>
+          </div>`;
+        }).join('');
+
+        const filtered = allRows.filter(r => activeClassFilter === 'all' || r.kelas === activeClassFilter)
+          .slice().sort((a, b) => (Number(a.rank) || 999) - (Number(b.rank) || 999) || a.posName.localeCompare(b.posName, 'id'));
+        if (!filtered.length) {
+          rowsEl.innerHTML = '<tr><td class="empty-cell" colspan="9">Tidak ada POS untuk kelas/periode ini.</td></tr>';
+        } else {
+          rowsEl.innerHTML = filtered.map(r => {
+            const gap = (Number(r.totalUE) || 0) - (Number(r.targetFix) || 0);
+            const klass = ['HIGH','MIDDLE','LOW'].includes(r.kelas) ? r.kelas.toLowerCase() : 'unclassified';
+            return `<tr>
+              <td>${r.rank == null ? '—' : fmtNum(r.rank)}</td>
+              <td>${esc(r.posName)}</td>
+              <td><span class="class-badge class-${klass}">${esc(r.kelas)}</span></td>
+              <td>${esc(r.dealerCode)}</td>
+              <td class="total-col">${fmtNum(r.totalUE)}</td>
+              <td>${fmtNum(r.targetFix)}</td>
+              <td>${percentLabel(r.targetFix ? (Number(r.totalUE)||0)/(Number(r.targetFix)||1) : 0)}</td>
+              <td class="${gap >= 0 ? 'positive' : 'negative'}">${gap > 0 ? '+' : ''}${fmtNum(gap)}</td>
+              <td>${r.sipSubmitted ? 'Terkumpul' : 'Belum'}</td>
+            </tr>`;
+          }).join('');
+        }
+        document.getElementById('classTableSubtitle').textContent = `${activeClassFilter === 'all' ? 'Semua kelas' : `Kelas ${activeClassFilter}`} · ${monthLabel(activeClassMonth)} · diurutkan sesuai rank pada Excel.`;
+        document.getElementById('classTableCount').textContent = `${fmtNum(filtered.length)} POS ditampilkan dari ${fmtNum(allRows.length)} POS pada periode ini`;
+        const generated = classDataRoot.meta.generatedAt ? fmtDate(classDataRoot.meta.generatedAt) : 'tanggal tidak tersedia';
+        const currentMonthNote = activeClassMonth === currentMonth ? ' Periode berjalan belum selesai; angka aktual bulan ini bersifat sementara.' : '';
+        document.getElementById('classSourceNote').textContent = `Sumber: ${classDataRoot.meta.sourceFile || 'workbook UE POS'} · diperbarui dari file pada ${generated}. Kelas mengikuti kolom Jenis Kelas pada Excel; ACV per kelas dihitung secara tertimbang dari total UE dan total target.${currentMonthNote}`;
+      }
+      function exportClassCsv() {
+        const allRows = currentClassMonthRows();
+        const filtered = allRows.filter(r => activeClassFilter === 'all' || r.kelas === activeClassFilter)
+          .slice().sort((a, b) => (Number(a.rank) || 999) - (Number(b.rank) || 999) || a.posName.localeCompare(b.posName, 'id'));
+        const csvEscape = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+        const headers = ['Periode','Rank','Nama POS Service','Kelas','Kode AHASS','Group','UE Aktual','Target Fix','ACV','Gap UE','Pengumpulan SIP'];
+        const lines = [headers.map(csvEscape).join(';')];
+        filtered.forEach(r => lines.push([
+          r.month, r.rank, r.posName, r.kelas, r.dealerCode, r.group, r.totalUE, r.targetFix,
+          r.targetFix ? (Number(r.totalUE)||0)/(Number(r.targetFix)||1) : 0,
+          (Number(r.totalUE)||0)-(Number(r.targetFix)||0), r.sipSubmitted ? 'Terkumpul' : 'Belum'
+        ].map(csvEscape).join(';')));
+        const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url; link.download = `ue-pos-kelas-${activeClassMonth}-${activeClassFilter}.csv`;
+        document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+      }
       function setupFilters() {
-        posSelect.innerHTML = positions.map(p => `<option value="${esc(p.posId)}">${esc(p.posName)}</option>`).join('');
+        posSelect.innerHTML = positions.map(p => `<option value="${esc(p.posId)}">${esc(p.posName)} · ${esc(p.posClass === 'UNCLASSIFIED' ? 'Belum diklasifikasikan' : p.posClass)}</option>`).join('');
         const options = ['<option value="all">Semua periode</option>'].concat(months.slice().reverse().map(m => {
           const future = m > currentMonth;
           return `<option value="${esc(m)}">${future?'⚠ ':''}${esc(monthLabel(m))}${future?' · periksa tanggal':''}</option>`;
@@ -560,8 +788,19 @@
         if ((dataRoot.meta.futureRecordCount || 0) > 0 || records.some(r=>r.date > today.toISOString().slice(0,10))) futureNotice.classList.remove('hidden');
         posSelect.addEventListener('change', () => { activePosId = posSelect.value; renderDashboard(); });
         periodSelect.addEventListener('change', () => { activeMonth = periodSelect.value; renderDashboard(); });
+        const classMonthSelect = document.getElementById('classMonthSelect');
+        const classFilterSelect = document.getElementById('classFilterSelect');
+        classMonthSelect.innerHTML = classMonths.slice().reverse().map(m => `<option value="${esc(m)}">${esc(monthLabel(m))}</option>`).join('');
+        activeClassMonth = classMonths.includes(currentMonth) ? currentMonth : latestClassMonth;
+        activeClassFilter = 'all';
+        classMonthSelect.value = activeClassMonth;
+        classFilterSelect.value = activeClassFilter;
+        classMonthSelect.addEventListener('change', () => { activeClassMonth = classMonthSelect.value; renderClassMonthlyDashboard(); });
+        classFilterSelect.addEventListener('change', () => { activeClassFilter = classFilterSelect.value; renderClassMonthlyDashboard(); });
+        document.getElementById('exportClassBtn').addEventListener('click', exportClassCsv);
         document.getElementById('exportBtn').addEventListener('click', exportCsv);
         document.getElementById('shareBtn').addEventListener('click', shareLink);
+        renderClassMonthlyDashboard();
         renderDashboard();
       }
       function csvEscape(v) { const s=String(v == null ? '' : v); return '"'+s.replace(/"/g,'""')+'"'; }
