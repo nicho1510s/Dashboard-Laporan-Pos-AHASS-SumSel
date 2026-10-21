@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Extract safe POS performance fields from the 'Form Responses 1' sheet.
+"""Extract POS performance fields from the 'Form Responses 1' worksheet.
 
 Usage:
-  python generate_data.py "/path/to/Laporan Pos Sumatera Selatan (Responses).xlsx"
+  python generate_data.py "Laporan Pos Sumatera Selatan (Responses).xlsx"
 
-Only operational summary fields are exported. No customer/transaction-level sheets are read.
+Only POS operational summary fields are exported. Other transaction sheets are not read.
 """
 import datetime as dt
 import json
@@ -17,7 +17,6 @@ from pathlib import Path
 
 MAIN_NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-PKG_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
 
 
 def col_number(cell_ref: str) -> int:
@@ -33,7 +32,6 @@ def col_number(cell_ref: str) -> int:
 def excel_serial_to_date(value):
     try:
         serial = float(value)
-        # Excel's default 1900 date system (including its compatibility offset).
         return (dt.datetime(1899, 12, 30) + dt.timedelta(days=serial)).date().isoformat()
     except (TypeError, ValueError, OverflowError):
         return None
@@ -65,9 +63,11 @@ def find_sheet_path(zf, sheet_name: str) -> str:
 
 
 def read_shared_strings(zf):
+    path = "xl/sharedStrings.xml"
+    if path not in zf.namelist():
+        return []
     strings = []
-    # iterparse keeps the expanded XML tree small enough for large workbooks.
-    with zf.open("xl/sharedStrings.xml") as stream:
+    with zf.open(path) as stream:
         for _, elem in ET.iterparse(stream, events=("end",)):
             if elem.tag == f"{{{MAIN_NS}}}si":
                 strings.append("".join(elem.itertext()))
@@ -107,20 +107,14 @@ def extract(source: Path):
         sheet_path = find_sheet_path(zf, "Form Responses 1")
         shared_strings = read_shared_strings(zf)
         records = []
-        seen_ids = Counter()
         for row in iter_sheet_rows(zf, sheet_path, shared_strings):
             name = str(row.get(2, "")).strip()
             date = excel_serial_to_date(row.get(3, ""))
             if not name or not date or name.lower() == "nama ahass pos / ahass":
                 continue
-
             code_raw = str(row.get(15, "")).strip()
             if re.fullmatch(r"\d+\.0", code_raw):
                 code_raw = code_raw[:-2]
-            slug_base = slugify(name)
-            seen_ids[slug_base] += 1
-            pos_id = slug_base if seen_ids[slug_base] == 1 else f"{slug_base}-{code_raw or seen_ids[slug_base]}"
-
             ue_regular = number(row.get(4, ""))
             kpb1 = number(row.get(5, ""))
             kpb2 = number(row.get(6, ""))
@@ -131,27 +125,16 @@ def extract(source: Path):
             revenue_hgp = number(row.get(11, ""))
             ue_kpb = kpb1 + kpb2 + kpb3 + kpb4
             records.append({
-                "posId": pos_id,
-                "posName": name,
-                "dealerCode": code_raw,
-                "date": date,
-                "month": date[:7],
-                "ueRegular": ue_regular,
-                "kpb1": kpb1,
-                "kpb2": kpb2,
-                "kpb3": kpb3,
-                "kpb4": kpb4,
-                "ueKpb": ue_kpb,
+                "posId": "", "posName": name, "dealerCode": code_raw,
+                "date": date, "month": date[:7],
+                "ueRegular": ue_regular, "kpb1": kpb1, "kpb2": kpb2,
+                "kpb3": kpb3, "kpb4": kpb4, "ueKpb": ue_kpb,
                 "ueTotal": ue_regular + ue_kpb,
-                "revenueService": revenue_service,
-                "revenueOil": revenue_oil,
+                "revenueService": revenue_service, "revenueOil": revenue_oil,
                 "revenueHgp": revenue_hgp,
                 "revenueTotal": revenue_service + revenue_oil + revenue_hgp,
                 "mechanicsPresent": number(row.get(12, "")),
             })
-
-    # Normalize IDs consistently when a POS name appears in multiple records.
-    # Use a single ID per unique POS name + AHASS code pair.
     pos_pairs = sorted({(r["posName"], r["dealerCode"]) for r in records})
     pair_ids = {}
     used = set()
@@ -168,16 +151,13 @@ def extract(source: Path):
         pair_ids[(name, code)] = candidate
     for record in records:
         record["posId"] = pair_ids[(record["posName"], record["dealerCode"])]
-
     records.sort(key=lambda r: (r["posName"].lower(), r["date"]))
     today = dt.date.today().isoformat()
     dates = [r["date"] for r in records]
     pos_count = len({r["posId"] for r in records})
     meta = {
-        "generatedAt": today,
-        "sourceSheet": "Form Responses 1",
-        "reportCount": len(records),
-        "posCount": pos_count,
+        "generatedAt": today, "sourceSheet": "Form Responses 1",
+        "reportCount": len(records), "posCount": pos_count,
         "dateRangeStart": min(dates) if dates else None,
         "dateRangeEnd": max(dates) if dates else None,
         "futureRecordCount": sum(1 for r in records if r["date"] > today),
