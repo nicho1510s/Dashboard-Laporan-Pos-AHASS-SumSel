@@ -276,7 +276,7 @@
         <article class="kpi" style="--tint:#fff0f2;--accent:#e51b35">
           <div class="kpi-head"><span class="kpi-label">Total Unit Entry</span><span class="kpi-icon">↗</span></div>
           <div class="kpi-value" id="kpiUE">—</div>
-          <p class="kpi-sub" id="kpiUESub">UE Reguler + KPB 1–4</p>
+          <p class="kpi-sub" id="kpiUESub">Total UE bulanan dari kolom Total pada sheet UE POS</p>
         </article>
         <article class="kpi" style="--tint:#eef5ff;--accent:#356ac3">
           <div class="kpi-head"><span class="kpi-label">Total Revenue</span><span class="kpi-icon">Rp</span></div>
@@ -315,7 +315,7 @@
       <section class="lower-grid">
         <article class="panel breakdown-panel">
           <h3 class="section-title">Komposisi Unit Entry</h3>
-          <p class="section-note">Porsi UE Reguler dibandingkan total KPB pada periode terpilih.</p>
+          <p class="section-note">Rincian UE Reguler dan KPB dari laporan operasional; sumbernya berbeda dari KPI total UE bulanan.</p>
           <div class="stacked-track" id="ueStack"></div>
           <div id="ueBreakdown"></div>
           <div class="break-divider"></div>
@@ -535,14 +535,30 @@
       function filteredRecords() {
         return filteredByPos().filter(r => activeMonth === 'all' || r.month === activeMonth).sort((a,b) => a.date.localeCompare(b.date));
       }
-      function monthTrend() {
+      // UE bulanan diambil dari kolom "Total" pada tab UE POS, bukan dari
+      // Form Responses yang pada sumber ini bertanggal tanggal 10 setiap bulan.
+      function monthlyUEAggregate(posId, month) {
+        const rows = classRecords.filter(r =>
+          r.posId === posId && (month === 'all' || r.month === month)
+        );
+        const total = sum(rows, 'totalUE');
+        return { rows, total, months: rows.length, average: rows.length ? total / rows.length : 0 };
+      }
+      function monthlyUETrend(posId, throughMonth) {
+        return classRecords
+          .filter(r => r.posId === posId && (throughMonth === 'all' || r.month <= throughMonth))
+          .map(r => ({ month: r.month, ueTotal: Number(r.totalUE) || 0 }))
+          .sort((a, b) => a.month.localeCompare(b.month))
+          .slice(-12);
+      }
+      function revenueMonthTrend() {
         const source = filteredByPos().filter(r => activeMonth === 'all' || r.month <= activeMonth);
         const map = new Map();
         source.forEach(r => {
-          if (!map.has(r.month)) map.set(r.month, { month: r.month, ueTotal: 0, revenueTotal: 0 });
-          const x = map.get(r.month); x.ueTotal += Number(r.ueTotal)||0; x.revenueTotal += Number(r.revenueTotal)||0;
+          if (!map.has(r.month)) map.set(r.month, { month: r.month, revenueTotal: 0 });
+          map.get(r.month).revenueTotal += Number(r.revenueTotal) || 0;
         });
-        return Array.from(map.values()).sort((a,b) => a.month.localeCompare(b.month)).slice(-12);
+        return Array.from(map.values()).sort((a, b) => a.month.localeCompare(b.month)).slice(-12);
       }
       function renderLineChart(containerId, points, key, color, format) {
         const el = document.getElementById(containerId);
@@ -616,9 +632,11 @@
         const allPosRecords = filteredByPos();
         const items = filteredRecords();
         const s = aggregate(items);
+        const ueMonthly = monthlyUEAggregate(activePosId, activeMonth);
         const prevMonth = activeMonth !== 'all' ? lastMonth(activeMonth) : '';
         const prevItems = prevMonth ? allPosRecords.filter(r=>r.month===prevMonth) : [];
         const prev = aggregate(prevItems);
+        const prevUEMonthly = prevMonth ? monthlyUEAggregate(activePosId, prevMonth) : { rows: [], total: 0, months: 0, average: 0 };
         document.getElementById('posTitle').textContent = pos.posName.split('/')[0].trim();
         document.getElementById('dealerCode').textContent = `Kode AHASS ${pos.dealerCode || '—'}`;
         const posClassBadge = document.getElementById('posClassBadge');
@@ -630,20 +648,34 @@
         document.getElementById('periodState').textContent = items.length ? `${fmtNum(items.length)} laporan tersedia` : 'Belum ada laporan';
         document.getElementById('periodState').classList.toggle('warning', !items.length || (activeMonth !== 'all' && activeMonth > currentMonth));
 
-        document.getElementById('kpiUE').textContent = fmtNum(s.ueTotal);
-        document.getElementById('kpiUESub').innerHTML = activeMonth === 'all' ? `Rata-rata ${fmtNum(s.averageUE)} UE per laporan` : `${changeText(s.ueTotal, prev.ueTotal, prev.reports > 0, prevMonth ? `vs ${monthLabel(prevMonth)}` : '')}`;
+        document.getElementById('kpiUE').textContent = ueMonthly.months ? fmtNum(ueMonthly.total) : '—';
+        if (activeMonth === 'all') {
+          document.getElementById('kpiUESub').textContent = ueMonthly.months
+            ? `Akumulasi ${fmtNum(ueMonthly.months)} bulan dari kolom Total UE bulanan`
+            : 'Data Total UE bulanan belum tersedia';
+        } else if (!ueMonthly.months) {
+          document.getElementById('kpiUESub').textContent = 'Total UE bulanan tidak tersedia untuk periode ini';
+        } else if (prevUEMonthly.months) {
+          document.getElementById('kpiUESub').innerHTML = `${changeText(ueMonthly.total, prevUEMonthly.total, true, `vs ${monthLabel(prevMonth)}`)} · Total UE bulanan`;
+        } else {
+          document.getElementById('kpiUESub').textContent = 'Total dari kolom Total pada sheet UE POS';
+        }
         document.getElementById('kpiRevenue').textContent = s.revenueTotal >= 1e9 ? `Rp ${compact(s.revenueTotal)}` : fmtMoney(s.revenueTotal);
         document.getElementById('kpiRevenueSub').innerHTML = activeMonth === 'all' ? `Rata-rata ${fmtMoney(s.averageRevenue)} per laporan` : `${changeText(s.revenueTotal, prev.revenueTotal, prev.reports > 0, prevMonth ? `vs ${monthLabel(prevMonth)}` : '')}`;
         document.getElementById('kpiKPB').textContent = fmtNum(s.ueKpb);
-        const kpbPct = s.ueTotal ? s.ueKpb/s.ueTotal*100 : 0;
-        document.getElementById('kpiKPBSub').textContent = `${kpbPct.toLocaleString('id-ID',{maximumFractionDigits:1})}% dari total UE`;
+        const operationalUETotal = s.ueRegular + s.ueKpb;
+        const kpbPct = operationalUETotal ? s.ueKpb / operationalUETotal * 100 : 0;
+        document.getElementById('kpiKPBSub').textContent = `${kpbPct.toLocaleString('id-ID',{maximumFractionDigits:1})}% dari UE laporan operasional`;
         document.getElementById('kpiMechanics').textContent = s.reports ? s.averageMechanics.toLocaleString('id-ID',{maximumFractionDigits:1}) : '—';
         document.getElementById('kpiMechanicsSub').textContent = s.reports ? `${fmtNum(s.mechanicsTotal)} akumulasi kehadiran dari ${fmtNum(s.reports)} laporan` : 'Belum ada data mekanik';
 
-        const trend = monthTrend();
-        renderBarChart('ueChart', trend, 'ueTotal');
-        renderLineChart('revenueChart', trend, 'revenueTotal', '#356ac3', compact);
-        document.getElementById('ueChartSubtitle').textContent = activeMonth === 'all' ? 'Riwayat bulanan pada seluruh periode tersedia.' : `Riwayat bulanan sampai ${monthLabel(activeMonth)}.`;
+        const ueTrend = monthlyUETrend(activePosId, activeMonth);
+        const revenueTrend = revenueMonthTrend();
+        renderBarChart('ueChart', ueTrend, 'ueTotal');
+        renderLineChart('revenueChart', revenueTrend, 'revenueTotal', '#356ac3', compact);
+        document.getElementById('ueChartSubtitle').textContent = activeMonth === 'all'
+          ? 'Total UE bulanan dari kolom Total pada sheet UE POS.'
+          : `Total UE bulanan sampai ${monthLabel(activeMonth)}; sumber kolom Total pada sheet UE POS.`;
         document.getElementById('revenueChartSubtitle').textContent = activeMonth === 'all' ? 'Riwayat revenue pada seluruh periode tersedia.' : `Riwayat revenue sampai ${monthLabel(activeMonth)}.`;
 
         const ueTotal = s.ueRegular + s.ueKpb;
@@ -659,12 +691,20 @@
         ], s.revenueTotal, true);
 
         let insight = '';
+        const uePeriodLabel = activeMonth === 'all' ? 'seluruh bulan yang tersedia' : monthLabel(activeMonth);
+        const ueSummary = ueMonthly.months
+          ? `${fmtNum(ueMonthly.total)} UE total pada ${uePeriodLabel} dari kolom Total di workbook UE POS`
+          : `data Total UE bulanan tidak tersedia pada ${uePeriodLabel}`;
         if (!items.length) {
-          insight = `Belum ada laporan detail (UE Reguler/KPB, revenue, dan mekanik) dari ${pos.posName.split('/')[0].trim()} pada ${activeMonth==='all'?'seluruh periode yang tersedia':monthLabel(activeMonth)}. POS ini tetap dapat memiliki data UE bulanan pada panel Performa UE Bulanan per Kelas POS; kedua panel menggunakan sumber laporan yang berbeda.`;
+          insight = `${ueSummary}. Data detail UE Reguler/KPB, revenue, dan mekanik belum tersedia pada sumber laporan operasional untuk POS ini pada periode tersebut.`;
         } else {
-          insight = `Pada ${activeMonth==='all'?'seluruh periode yang tersedia':monthLabel(activeMonth)}, POS ini mencatat ${fmtNum(s.ueTotal)} UE dan ${fmtMoney(s.revenueTotal)} revenue dari ${fmtNum(s.reports)} laporan. UE KPB berkontribusi ${kpbPct.toLocaleString('id-ID',{maximumFractionDigits:1})}% dari UE yang tercatat.`;
-          if (prevMonth && prev.reports) insight += ` Dibanding ${monthLabel(prevMonth)}, UE ${s.ueTotal>prev.ueTotal?'meningkat':s.ueTotal<prev.ueTotal?'menurun':'tetap'} dan revenue ${s.revenueTotal>prev.revenueTotal?'meningkat':s.revenueTotal<prev.revenueTotal?'menurun':'tetap'}.`;
-          else if (activeMonth !== 'all') insight += ` Data pembanding untuk ${monthLabel(prevMonth)} tidak tersedia.`;
+          insight = `POS ini mencatat ${ueSummary}. Revenue ${fmtMoney(s.revenueTotal)} berasal dari ${fmtNum(s.reports)} laporan operasional. Pada sumber operasional, UE KPB berkontribusi ${kpbPct.toLocaleString('id-ID',{maximumFractionDigits:1})}% dari UE Reguler + KPB yang dilaporkan.`;
+          if (prevMonth && prevUEMonthly.months && ueMonthly.months) {
+            insight += ` Dibanding ${monthLabel(prevMonth)}, total UE bulanan ${ueMonthly.total > prevUEMonthly.total ? 'meningkat' : ueMonthly.total < prevUEMonthly.total ? 'menurun' : 'tetap'}.`;
+          } else if (activeMonth !== 'all' && !prevUEMonthly.months) {
+            insight += ` Data total UE bulanan untuk ${monthLabel(prevMonth)} tidak tersedia sebagai pembanding.`;
+          }
+          if (prevMonth && prev.reports) insight += ` Revenue ${s.revenueTotal > prev.revenueTotal ? 'meningkat' : s.revenueTotal < prev.revenueTotal ? 'menurun' : 'tetap'} dibanding ${monthLabel(prevMonth)}.`;
           if (activeMonth !== 'all' && activeMonth > currentMonth) insight += ' Periode terpilih berada setelah bulan berjalan; verifikasi tanggal pada sumber sebelum menggunakan angka ini sebagai realisasi.';
         }
         document.getElementById('insightText').textContent = insight;
